@@ -22,6 +22,8 @@ import resumeImg from "../assets/resume.png";
 import pdfImg from "../assets/pdf.png";
 import analyticsImg from "../assets/history.png";
 import PerformanceDashboard from '../components/PerformanceDashboard';
+import logo_3d from "../assets/logo_3d.png"
+import chatbot_3d from "../assets/chatbot_3d.png"
 
 function Home() {
   const { userData } = useSelector((state) => state.user);
@@ -39,7 +41,7 @@ function Home() {
 
   const steps = [
     {
-      icon: <BsRobot size={24} />,
+      icon: <img src={chatbot_3d} className="w-8 h-8 object-contain" />,
       step: "STEP 1",
       title: "Role & Experience Selection",
       desc: "AI adjusts difficulty based on selected job role.",
@@ -171,8 +173,8 @@ function Home() {
                 className='w-64 h-64 relative flex justify-center items-center'
               >
                 <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-3xl animate-pulse" />
-                <div className="w-24 h-24 bg-yellow-400 rounded-full shadow-[0_0_50px_#ffff00] flex items-center justify-center z-10 relative">
-                  <BsMic size={40} className="text-black animate-bounce" />
+                <div className="w-32 h-32 flex items-center justify-center z-10 relative">
+                  <img src={logo_3d} alt="3D Logo" className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-bounce" />
                 </div>
                 {[...Array(4)].map((_, i) => (
                   <motion.div

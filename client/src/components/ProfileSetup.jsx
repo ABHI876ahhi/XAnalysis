@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BsRobot, BsCheck2 } from 'react-icons/bs';
+import { BsCheck2 } from 'react-icons/bs';
+import chatbot_3d from "../assets/chatbot_3d.png"
 import axios from 'axios';
 import { ServerUrl } from '../App';
 import { useDispatch } from 'react-redux';
@@ -52,8 +53,8 @@ function ProfileSetup({ onClose }) {
             >
                 {/* Header */}
                 <div className='flex items-center justify-center gap-3 mb-6'>
-                    <div className='bg-yellow-400 text-black p-2 rounded-xl'>
-                        <BsRobot size={20} />
+                    <div className='w-10 h-10'>
+                        <img src={chatbot_3d} alt="AI Coach" className='w-full h-full object-contain' />
                     </div>
                     <h2 className='text-2xl font-bold tracking-tight'>Set Up Profile</h2>
                 </div>

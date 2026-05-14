@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BsRobot, BsX, BsSend } from 'react-icons/bs';
+import { BsX, BsSend } from 'react-icons/bs';
+import chatbot_3d from "../assets/chatbot_3d.png"
 import axios from 'axios';
 import { ServerUrl } from '../App';
 import Typewriter from './Typewriter';
@@ -104,8 +105,8 @@ function AIAssistant() {
                         {/* Header */}
                         <div className="bg-white/50 backdrop-blur-md p-4 flex justify-between items-center border-b border-black/10">
                             <div className="flex items-center gap-2">
-                                <div className="bg-black text-yellow-400 p-1.5 rounded-lg shadow-sm">
-                                    <BsRobot size={18} />
+                                <div className="w-8 h-8 rounded-lg overflow-hidden">
+                                    <img src={chatbot_3d} alt="AI Coach" className='w-full h-full object-cover' />
                                 </div>
                                 <h3 className="font-bold text-black tracking-tight">AI Coach</h3>
                             </div>
@@ -193,7 +194,7 @@ function AIAssistant() {
                     onClick={() => setIsOpen(true)}
                     className="w-14 h-14 bg-white text-black rounded-full shadow-[0_0_20px_rgba(255,255,255,0.4)] border border-black/10 flex items-center justify-center hover:shadow-[0_0_25px_rgba(255,255,255,0.6)] transition"
                 >
-                    <BsRobot size={24} />
+                    <img src={chatbot_3d} alt="AI Coach" className='w-[80%] h-[80%] object-contain' />
                 </motion.button>
             )}
         </div>

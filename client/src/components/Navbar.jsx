@@ -10,6 +10,7 @@ import { ServerUrl } from '../App';
 import { setUserData } from '../redux/userSlice';
 import AuthModel from './AuthModel';
 import ProfileSetup from './ProfileSetup';
+import logo_3d from "../assets/logo_3d.png"
 
 const AVATARS = [
     '🧑', '👩', '🧔', '👨‍💼', '👩‍💼', '🧑‍💻',
@@ -67,10 +68,10 @@ function Navbar() {
             >
                 {/* Brand */}
                 <div className='flex items-center gap-3 cursor-pointer group' onClick={() => navigate("/")}>
-                    <div className='bg-white text-black p-2 rounded-xl group-hover:shadow-[0_0_12px_rgba(255,255,255,0.4)] transition'>
-                        <BsRobot size={18} />
+                    <div className='w-10 h-10 group-hover:scale-110 transition-transform duration-300'>
+                        <img src={logo_3d} alt="XAnalysis Logo" className='w-full h-full object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' />
                     </div>
-                    <h1 className='font-bold hidden md:block text-lg text-white tracking-tight'>
+                    <h1 className='font-bold hidden md:block text-xl text-white tracking-tight'>
                         XAnalysis<span className='text-yellow-400'>.</span>
                     </h1>
                 </div>

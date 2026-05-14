@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { BsRobot } from "react-icons/bs";
+import logo_3d from "../assets/logo_3d.png"
 import { IoSparkles } from "react-icons/io5";
 import { motion } from "motion/react"
 import { FcGoogle } from "react-icons/fc";
@@ -50,8 +50,8 @@ function Auth({ isModel = false }) {
             >
                 {/* Brand */}
                 <div className='flex items-center justify-center gap-3 mb-6'>
-                    <div className={`${isModel ? "bg-black text-yellow-400" : "bg-white text-black"} p-2 rounded-lg shadow-sm`}>
-                        <BsRobot size={18} />
+                    <div className='w-10 h-10'>
+                        <img src={logo_3d} alt="Logo" className='w-full h-full object-contain' />
                     </div>
                     <h2 className='font-bold text-lg tracking-wide'>XAnalysis</h2>
                 </div>
