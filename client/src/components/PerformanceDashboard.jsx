@@ -9,7 +9,6 @@ import { HiSparkles } from 'react-icons/hi';
 import { FaTrophy } from 'react-icons/fa';
 import axios from 'axios';
 import { ServerUrl } from '../App';
-import chatbot_3d from "../assets/chatbot_3d.png"
 import { useNavigate } from 'react-router-dom';
 
 // Custom yellow tooltip for Recharts
@@ -84,7 +83,7 @@ function PerformanceDashboard({ userData }) {
   if (!userData) {
     return (
       <div className="border border-yellow-400/20 rounded-[32px] bg-black p-12 text-center">
-        <img src={chatbot_3d} alt="AI Coach" className="w-16 h-16 mx-auto mb-4 object-contain" />
+        <BsRobot size={48} className="text-yellow-400 mx-auto mb-4" />
         <h3 className="text-2xl font-bold text-white mb-2">Sign in to see your dashboard</h3>
         <p className="text-gray-400">Your performance data will appear here after you complete interviews.</p>
       </div>
@@ -251,8 +250,8 @@ function PerformanceDashboard({ userData }) {
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-yellow-400/20 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex items-center gap-2 mb-4 relative z-10">
-            <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <img src={chatbot_3d} alt="AI Coach" className='w-full h-full object-cover' />
+            <div className="bg-black text-yellow-400 p-2 rounded-xl">
+              <BsRobot size={18} />
             </div>
             <div>
               <p className="font-bold text-black text-sm tracking-tight">XAnalysis Pro</p>

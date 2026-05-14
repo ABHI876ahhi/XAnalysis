@@ -1,5 +1,5 @@
 import React from 'react'
-import logo_3d from '../assets/logo_3d.png'
+import { BsRobot } from 'react-icons/bs'
 import { FaLinkedin, FaTwitter, FaGithub } from 'react-icons/fa'
 
 function Footer() {
@@ -11,9 +11,7 @@ function Footer() {
           {/* Column 1: Branding & About */}
           <div className='flex flex-col items-center md:items-start text-center md:text-left'>
             <div className='flex items-center gap-3 mb-4 cursor-pointer'>
-                <div className='w-8 h-8 group-hover:scale-110 transition-transform duration-300'>
-                    <img src={logo_3d} alt="XAnalysis Logo" className='w-full h-full object-contain' />
-                </div>
+                <div className='bg-white text-black p-2 rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.2)]'><BsRobot size={20}/></div>
                 <h2 className='font-bold text-xl tracking-wide'>XAnalysis</h2>
             </div>
             <p className='text-gray-400 text-sm max-w-xs'>
