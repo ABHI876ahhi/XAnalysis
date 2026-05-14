@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-yellow-400: #ffff00;
+  --color-yellow-500: #ffff00;
+  --color-yellow-600: #cccc00;
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #000000;
+  color: #ffffff;
+}
