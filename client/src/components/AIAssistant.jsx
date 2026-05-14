@@ -141,7 +141,7 @@ function AIAssistant() {
                                         <div className="max-w-[80%] p-3 rounded-2xl bg-white shadow-sm rounded-tl-sm relative overflow-hidden">
                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent animate-pulse" />
                                             <p className="text-sm font-medium relative z-10 text-black/60 animate-pulse">
-                                                Gemini is analyzing your response...
+                                                XAnalysis is analyzing your response...
                                             </p>
                                         </div>
                                     ) : (

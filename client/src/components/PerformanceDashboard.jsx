@@ -69,7 +69,7 @@ function PerformanceDashboard({ userData }) {
     { skill: 'Speed',         value: recent ? Math.max(0,  (recent.finalScore ?? 0) - 0.5) : 0 },
   ];
 
-  // Gemini pro-tip: last feedback from the most recent interview's questions
+  // XAnalysis pro-tip: last feedback from the most recent interview's questions
   const lastFeedback = recent?.lastFeedback || null;
   const proTip = lastFeedback
     || (recent
@@ -240,7 +240,7 @@ function PerformanceDashboard({ userData }) {
           </div>
         </motion.div>
 
-        {/* Tile 4: Gemini Pro-Tip (Frosted Glass) */}
+        {/* Tile 4: XAnalysis Pro-Tip (Frosted Glass) */}
         <motion.div
           initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.3 }}

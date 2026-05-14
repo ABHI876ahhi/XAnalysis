@@ -423,7 +423,7 @@ setIsSubmitting(false)
             {isSubmitting ? (
               <div className="flex-1 p-3 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
-                <p className="text-sm font-medium relative z-10 text-yellow-400 animate-pulse text-center">Gemini is analyzing your response...</p>
+                <p className="text-sm font-medium relative z-10 text-yellow-400 animate-pulse text-center">XAnalysis is analyzing your response...</p>
               </div>
             ) : (
               <motion.button
