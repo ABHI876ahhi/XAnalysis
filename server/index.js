@@ -16,7 +16,7 @@ const app = express()
 app.set("trust proxy", 1);
 
 app.use(cors({
-    origin: [process.env.CLIENT_URL, "http://localhost:5173"],
+    origin: [process.env.CLIENT_URL, "https://xanalysis-1.onrender.com"],
     credentials:true
 }))
 
