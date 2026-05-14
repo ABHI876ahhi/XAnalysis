@@ -11,8 +11,12 @@ import paymentRouter from "./routes/payment.route.js"
 import aiRouter from "./routes/ai.route.js"
 
 const app = express()
+
+// Trust proxy is required for Render/Heroku to set secure cookies over HTTP proxy
+app.set("trust proxy", 1);
+
 app.use(cors({
-    origin:"http://localhost:5173",
+    origin: [process.env.CLIENT_URL, "http://localhost:5173"],
     credentials:true
 }))
 
