@@ -36,17 +36,14 @@ const callGemini = async (systemPrompt, history, userMessage) => {
         systemInstruction: systemPrompt,
     });
 
-    // Gemini requires strict user/model alternation starting with "user"
     const formattedHistory = [];
     if (history && history.length > 0) {
         const mapped = history.map(m => ({
             role: m.role === "ai" ? "model" : "user",
             parts: [{ text: m.text }],
         }));
-        // Drop any leading non-user messages
         let startIndex = 0;
         while (startIndex < mapped.length && mapped[startIndex].role !== "user") startIndex++;
-        // Remove consecutive duplicates (Gemini requires strict alternation)
         let lastRole = null;
         for (let i = startIndex; i < mapped.length; i++) {
             if (mapped[i].role !== lastRole) {
@@ -63,18 +60,20 @@ const callGemini = async (systemPrompt, history, userMessage) => {
         if (!reply) throw new Error("Empty response from Gemini");
         return reply;
     } catch (err) {
-        // Surface Gemini's internal error message clearly
         const detail = err?.message || "Unknown Gemini error";
         console.error(`[Gemini] Error: ${detail}`);
         throw new Error(`Gemini: ${detail}`);
     }
 };
 
-// ─── Provider 2: OpenRouter (fallback — cycles 3 free models) ─────────────────
+// ─── Provider 2: OpenRouter (fallback — expanded list of free models) ──────────
 const OPENROUTER_MODELS = [
+    "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.1-8b-instruct:free",
     "mistralai/mistral-7b-instruct:free",
     "google/gemma-3-12b-it:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+    "nousresearch/hermes-3-llama-3.1-8b:free",
 ];
 
 const callOpenRouter = async (systemPrompt, history, userMessage) => {
@@ -115,8 +114,9 @@ const callOpenRouter = async (systemPrompt, history, userMessage) => {
             const { msg, status } = extractAxiosError(err);
             console.warn(`[OpenRouter] ${orModel} failed — ${status}: ${msg}`);
             lastError = new Error(`OpenRouter/${orModel}(${status}): ${msg}`);
-            // Only try next model for rate-limit / overload errors
-            if (status !== 429 && status !== 503 && status !== 402) break;
+            // Try next model if rate-limited, overloaded, or payment required for this model
+            if (status === 429 || status === 503 || status === 402 || status === 403) continue;
+            break;
         }
     }
     throw lastError || new Error("All OpenRouter models failed");
@@ -140,7 +140,7 @@ const buildSystemPrompt = async (interviewId, userId) => {
             prompt +=
                 `\n\nThe user just completed an interview for the role of ${interview.role} (${interview.experience}).` +
                 `\nFinal Score: ${interview.finalScore}/10\n\nQuestions & Answers:\n${summaries}` +
-                `\n\nUse this context to give highly personalized Strength/Weakness analysis and coaching tips.`;
+                `\n\nUse this context to provide highly personalized coaching.`;
         }
     }
     return prompt;
@@ -173,28 +173,22 @@ export const chatWithAI = async (req, res) => {
                 usedProvider = "openrouter";
             } catch (orErr) {
                 console.error("[AI] Both providers failed.");
-                console.error("  Gemini   :", gErr.message);
-                console.error("  OpenRouter:", orErr.message);
+                
+                const gMsg = gErr.message.toLowerCase();
+                const orMsg = orErr.message.toLowerCase();
 
-                const combined = `${gErr.message} | ${orErr.message}`.toLowerCase();
-                const isKey   = combined.includes("api key") || combined.includes("api_key") ||
-                                combined.includes("unauthorized") || combined.includes("401");
-                const isQuota = combined.includes("quota") || combined.includes("resource_exhausted") ||
-                                combined.includes("rate limit") || combined.includes("429") ||
-                                combined.includes("insufficient") || combined.includes("402");
-
+                const isKey = gMsg.includes("api key") || orMsg.includes("api key") || gMsg.includes("401") || orMsg.includes("401");
+                
                 if (isKey) {
                     return res.status(500).json({
-                        reply: "❌ AI API key is invalid or not set. Please check the GEMINI_API_KEY environment variable.",
+                        reply: "❌ AI API key is invalid or not set. Please check your Render environment variables.",
                     });
                 }
-                if (isQuota) {
-                    return res.status(429).json({
-                        reply: "⚠️ AI quota exceeded. Please try again in a few minutes.",
-                    });
-                }
-                return res.status(500).json({
-                    reply: `❌ AI service error — Gemini: ${gErr.message} | OpenRouter: ${orErr.message}`,
+
+                // If we get here, it's either quota or a safety filter/internal error
+                // We'll show a more helpful message including the actual error if possible
+                return res.status(429).json({
+                    reply: `⚠️ AI service is currently busy or quota exceeded. Please try again in a moment. (Debug: ${gErr.message.slice(0, 50)})`,
                 });
             }
         }
