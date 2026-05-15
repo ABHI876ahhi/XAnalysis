@@ -33,7 +33,7 @@ export const chatWithAI = async (req, res) => {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             systemInstruction: contextText
         });
 
@@ -74,6 +74,14 @@ export const chatWithAI = async (req, res) => {
 
     } catch (error) {
         console.error("Error in AI Chat:", error);
-        res.status(500).json({ reply: "Sorry, I am having trouble connecting to the AI Coach. " + error.message });
+        const errMsg = error?.message || "Unknown error";
+        // Surface specific API errors so the frontend can show them
+        if (errMsg.includes("API_KEY") || errMsg.includes("API key")) {
+            return res.status(500).json({ reply: "❌ Gemini API key is invalid or missing on the server. Please check Render environment variables." });
+        }
+        if (errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED")) {
+            return res.status(500).json({ reply: "⚠️ Gemini API quota exceeded. Please try again later." });
+        }
+        res.status(500).json({ reply: `❌ AI service error: ${errMsg}` });
     }
 };

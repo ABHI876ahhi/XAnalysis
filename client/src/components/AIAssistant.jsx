@@ -83,7 +83,16 @@ function AIAssistant() {
             setLatestAiIndex(updatedMessages.length - 1);
         } catch (error) {
             console.error('Error sending message:', error);
-            const errorMsg = error.response?.data?.reply || 'Sorry, I am having trouble connecting right now.';
+            // isAuth returns {message:...}, AI errors return {reply:...} — handle both
+            const serverMsg = error.response?.data?.reply || error.response?.data?.message;
+            let errorMsg;
+            if (!error.response) {
+                errorMsg = '⚠️ Cannot reach the server. Make sure the backend is running.';
+            } else if (error.response.status === 400 && serverMsg?.includes('token')) {
+                errorMsg = '🔒 Please log in first to use the AI Coach.';
+            } else {
+                errorMsg = serverMsg || 'Sorry, I am having trouble connecting right now.';
+            }
             const updatedMessages = [...newMessages, { role: 'ai', text: errorMsg }];
             setMessages(updatedMessages);
             setLatestAiIndex(updatedMessages.length - 1);
