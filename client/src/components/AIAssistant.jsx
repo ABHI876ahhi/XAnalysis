@@ -4,6 +4,7 @@ import { BsRobot, BsX, BsSend } from 'react-icons/bs';
 import axios from 'axios';
 import { ServerUrl } from '../App';
 import Typewriter from './Typewriter';
+import AICoachIcon from '../assets/ai-coach-3d.png';
 
 function AIAssistant() {
     const [isOpen, setIsOpen] = useState(false);
@@ -104,8 +105,8 @@ function AIAssistant() {
                         {/* Header */}
                         <div className="bg-white/50 backdrop-blur-md p-4 flex justify-between items-center border-b border-black/10">
                             <div className="flex items-center gap-2">
-                                <div className="bg-black text-yellow-400 p-1.5 rounded-lg shadow-sm">
-                                    <BsRobot size={18} />
+                                <div className="p-1 rounded-lg">
+                                    <img src={AICoachIcon} alt="AI Coach" className="w-8 h-8 drop-shadow-md" />
                                 </div>
                                 <h3 className="font-bold text-black tracking-tight">AI Coach</h3>
                             </div>
@@ -191,9 +192,12 @@ function AIAssistant() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsOpen(true)}
-                    className="w-14 h-14 bg-white text-black rounded-full shadow-[0_0_20px_rgba(255,255,255,0.4)] border border-black/10 flex items-center justify-center hover:shadow-[0_0_25px_rgba(255,255,255,0.6)] transition"
+                    className="w-16 h-16 bg-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.15)] border border-black/5 flex items-center justify-center hover:shadow-[0_15px_35px_rgba(0,0,0,0.2)] transition group"
                 >
-                    <BsRobot size={24} />
+                    <div className="relative">
+                        <img src={AICoachIcon} alt="AI Coach" className="w-10 h-10 drop-shadow-lg group-hover:scale-110 transition-transform duration-300" />
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                    </div>
                 </motion.button>
             )}
         </div>

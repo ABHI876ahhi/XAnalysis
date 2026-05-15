@@ -14,7 +14,9 @@ import AIAssistant from './components/AIAssistant'
 import ProfileSetup from './components/ProfileSetup'
 import { AnimatePresence } from 'motion/react'
 
-export const ServerUrl = "https://xanalysis.onrender.com"
+export const ServerUrl = import.meta.env.MODE === "development" 
+  ? "http://localhost:8000" 
+  : "https://xanalysis.onrender.com";
 
 function App() {
   const dispatch = useDispatch()
