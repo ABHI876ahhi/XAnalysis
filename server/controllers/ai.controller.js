@@ -4,6 +4,22 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Quick diagnostic — no auth needed. Hit GET /api/ai/test to verify the key on Render.
+export const testAI = async (req, res) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+        return res.status(500).json({ ok: false, error: "GEMINI_API_KEY is NOT set on this server." });
+    }
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const result = await model.generateContent("Reply with exactly: OK");
+        return res.status(200).json({ ok: true, reply: result.response.text().trim(), keyPrefix: apiKey.slice(0, 10) + "..." });
+    } catch (err) {
+        return res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
 export const chatWithAI = async (req, res) => {
     try {
         const { interviewId, message, conversationHistory } = req.body;
