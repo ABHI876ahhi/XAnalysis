@@ -24,6 +24,9 @@ app.use(express.json())
 app.use(cookieParser())
 
 app.use("/api/auth" , authRouter)
+app.get("/", (req, res) => {
+    res.send("XAnalysis Server is Running. Visit /api/ai/test to check AI configuration.");
+});
 app.use("/api/user", userRouter)
 app.use("/api/interview" , interviewRouter)
 app.use("/api/payment" , paymentRouter)
