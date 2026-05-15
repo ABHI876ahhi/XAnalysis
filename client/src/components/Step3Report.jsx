@@ -10,6 +10,17 @@ import autoTable from "jspdf-autotable"
 
 function Step3Report({ report }) {
   const navigate = useNavigate()
+
+  React.useEffect(() => {
+    if (!report?._id) return;
+
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('open-ai-chat', { detail: { interviewId: report._id } }));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [report?._id]);
+
   if (!report) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -17,6 +28,7 @@ function Step3Report({ report }) {
       </div>
     );
   }
+
   const {
     finalScore = 0,
     confidence = 0,
@@ -24,13 +36,6 @@ function Step3Report({ report }) {
     correctness = 0,
     questionWiseScore = [],
   } = report;
-
-  React.useEffect(() => {
-    if (report && report._id) {
-        // Automatically open the AI Assistant to provide Strength/Weakness analysis
-        window.dispatchEvent(new CustomEvent('open-ai-chat', { detail: { interviewId: report._id } }));
-    }
-  }, [report]);
 
   const questionScoreData = questionWiseScore.map((score, index) => ({
     name: `Q${index + 1}`,

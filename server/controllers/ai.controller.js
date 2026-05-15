@@ -79,10 +79,11 @@ const OPENROUTER_MODELS = [
 const callOpenRouter = async (systemPrompt, history, userMessage) => {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("OPENROUTER_API_KEY not set");
+    const safeHistory = Array.isArray(history) ? history : [];
 
     const messages = [
         { role: "system", content: systemPrompt },
-        ...history.map(m => ({
+        ...safeHistory.map(m => ({
             role: m.role === "ai" ? "assistant" : "user",
             content: m.text,
         })),
@@ -157,7 +158,7 @@ export const chatWithAI = async (req, res) => {
         }
 
         const systemPrompt = await buildSystemPrompt(interviewId, userId);
-        const history = conversationHistory || [];
+        const history = Array.isArray(conversationHistory) ? conversationHistory : [];
         let reply, usedProvider;
 
         // ── 1. Try Gemini (primary) ──────────────────────────────────────────

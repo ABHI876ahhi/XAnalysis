@@ -433,7 +433,7 @@ export const getMyInterviews = async (req,res) => {
 
 export const getInterviewReport = async (req,res) => {
   try {
-    const interview = await Interview.findById(req.params.id)
+    const interview = await Interview.findOne({ _id: req.params.id, userId: req.userId })
 
     if (!interview) {
       return res.status(404).json({ message: "Interview not found" });
@@ -464,6 +464,10 @@ export const getInterviewReport = async (req,res) => {
       : 0;
 
        return res.json({
+      _id: interview._id,
+      role: interview.role,
+      experience: interview.experience,
+      mode: interview.mode,
       finalScore: interview.finalScore,
       confidence: Number(avgConfidence.toFixed(1)),
       communication: Number(avgCommunication.toFixed(1)),
