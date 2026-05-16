@@ -15,6 +15,66 @@ const extractAxiosError = (err) => {
     return { msg: err.message || "Unknown error", status: null };
 };
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const withTimeout = (promise, ms, label) => {
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+    });
+
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+};
+
+const isRetryableProviderError = (err) => {
+    const status = err?.status || err?.response?.status;
+    const msg = (err?.message || "").toLowerCase();
+
+    return [408, 429, 500, 502, 503, 504].includes(status) ||
+        msg.includes("fetch") ||
+        msg.includes("timeout") ||
+        msg.includes("temporarily") ||
+        msg.includes("overload") ||
+        msg.includes("quota") ||
+        msg.includes("rate limit") ||
+        msg.includes("resource_exhausted");
+};
+
+const isModelUnavailableError = (err) => {
+    const status = err?.status || err?.response?.status;
+    const msg = (err?.message || "").toLowerCase();
+
+    return status === 404 ||
+        msg.includes("not found") ||
+        msg.includes("not supported") ||
+        msg.includes("not available");
+};
+
+const formatGeminiHistory = (history) => {
+    const formattedHistory = [];
+    if (history && history.length > 0) {
+        const mapped = history
+            .filter(m => m?.text)
+            .map(m => ({
+                role: m.role === "ai" ? "model" : "user",
+                parts: [{ text: m.text }],
+            }));
+
+        let startIndex = 0;
+        while (startIndex < mapped.length && mapped[startIndex].role !== "user") startIndex++;
+
+        let lastRole = null;
+        for (let i = startIndex; i < mapped.length; i++) {
+            if (mapped[i].role !== lastRole) {
+                formattedHistory.push(mapped[i]);
+                lastRole = mapped[i].role;
+            }
+        }
+    }
+
+    return formattedHistory;
+};
+
 // ─── Diagnostic endpoint  GET /api/ai/test ────────────────────────────────────
 export const testAI = async (req, res) => {
     const gKey  = process.env.GEMINI_API_KEY;
@@ -26,44 +86,89 @@ export const testAI = async (req, res) => {
 };
 
 // ─── Provider 1: Gemini (primary — free, generous quota) ──────────────────────
+const GEMINI_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+];
+
+const buildGeminiContents = (history, userMessage) => {
+    const contents = formatGeminiHistory(history);
+    const last = contents[contents.length - 1];
+
+    if (last?.role === "user") {
+        last.parts.push({ text: userMessage });
+    } else {
+        contents.push({ role: "user", parts: [{ text: userMessage }] });
+    }
+
+    return contents;
+};
+
+const callGeminiRest = async (apiKey, modelName, systemPrompt, history, userMessage) => {
+    const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
+        {
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: buildGeminiContents(history, userMessage),
+        },
+        {
+            params: { key: apiKey },
+            timeout: 30000,
+        }
+    );
+
+    const parts = response.data?.candidates?.[0]?.content?.parts || [];
+    const reply = parts.map(part => part?.text || "").join("").trim();
+    if (!reply) throw new Error(`Empty response from Gemini REST ${modelName}`);
+    return reply;
+};
+
 const callGemini = async (systemPrompt, history, userMessage) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
-        systemInstruction: systemPrompt,
-    });
+    const formattedHistory = formatGeminiHistory(history);
+    let lastError = null;
 
-    const formattedHistory = [];
-    if (history && history.length > 0) {
-        const mapped = history.map(m => ({
-            role: m.role === "ai" ? "model" : "user",
-            parts: [{ text: m.text }],
-        }));
-        let startIndex = 0;
-        while (startIndex < mapped.length && mapped[startIndex].role !== "user") startIndex++;
-        let lastRole = null;
-        for (let i = startIndex; i < mapped.length; i++) {
-            if (mapped[i].role !== lastRole) {
-                formattedHistory.push(mapped[i]);
-                lastRole = mapped[i].role;
+    for (const modelName of GEMINI_MODELS) {
+        const model = genAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: systemPrompt,
+        });
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                const chat = model.startChat({ history: formattedHistory });
+                const result = await withTimeout(chat.sendMessage(userMessage), 30000, `Gemini ${modelName}`);
+                const reply = result.response.text();
+                if (!reply) throw new Error(`Empty response from Gemini ${modelName}`);
+                return reply;
+            } catch (err) {
+                const detail = err?.message || "Unknown Gemini error";
+                console.warn(`[Gemini] ${modelName} attempt ${attempt} failed: ${detail}`);
+                lastError = err;
+
+                if (isModelUnavailableError(err) || !isRetryableProviderError(err)) break;
+                if (attempt < 2) await delay(700 * attempt);
             }
+        }
+
+        try {
+            console.log(`[Gemini] Trying REST fallback: ${modelName}`);
+            return await callGeminiRest(apiKey, modelName, systemPrompt, history, userMessage);
+        } catch (err) {
+            const { msg, status } = extractAxiosError(err);
+            console.warn(`[Gemini] REST ${modelName} failed - ${status}: ${msg}`);
+            lastError = new Error(`Gemini REST/${modelName}(${status}): ${msg}`);
+
+            if (!isRetryableProviderError(err) && !isModelUnavailableError(err)) break;
         }
     }
 
-    try {
-        const chat = model.startChat({ history: formattedHistory });
-        const result = await chat.sendMessage(userMessage);
-        const reply = result.response.text();
-        if (!reply) throw new Error("Empty response from Gemini");
-        return reply;
-    } catch (err) {
-        const detail = err?.message || "Unknown Gemini error";
-        console.error(`[Gemini] Error: ${detail}`);
-        throw new Error(`Gemini: ${detail}`);
-    }
+    const detail = lastError?.message || "Unknown Gemini error";
+    throw new Error(`Gemini: ${detail}`);
 };
 
 // ─── Provider 2: OpenRouter (fallback — expanded list of free models) ──────────
@@ -115,8 +220,9 @@ const callOpenRouter = async (systemPrompt, history, userMessage) => {
             const { msg, status } = extractAxiosError(err);
             console.warn(`[OpenRouter] ${orModel} failed — ${status}: ${msg}`);
             lastError = new Error(`OpenRouter/${orModel}(${status}): ${msg}`);
+            lastError.status = status;
             // Try next model if rate-limited, overloaded, or payment required for this model
-            if (status === 429 || status === 503 || status === 402 || status === 403) continue;
+            if (status === 402 || status === 403 || isRetryableProviderError({ message: msg, status })) continue;
             break;
         }
     }
@@ -148,6 +254,63 @@ const buildSystemPrompt = async (interviewId, userId) => {
 };
 
 // ─── Main chat handler  POST /api/ai/chat ─────────────────────────────────────
+const buildLocalCoachingReply = async (interviewId, userId) => {
+    if (!interviewId) return null;
+
+    const interview = await Interview.findOne({ _id: interviewId, userId });
+    if (!interview || !Array.isArray(interview.questions) || interview.questions.length === 0) return null;
+
+    const scoredQuestions = interview.questions
+        .map((q, index) => ({
+            index: index + 1,
+            question: q.question,
+            answer: q.answer,
+            score: Number(q.score || 0),
+            feedback: q.feedback,
+            confidence: Number(q.confidence || 0),
+            communication: Number(q.communication || 0),
+            correctness: Number(q.correctness || 0),
+        }))
+        .filter(q => q.answer || q.feedback || q.score > 0);
+
+    if (scoredQuestions.length === 0) return null;
+
+    const avg = (field) => scoredQuestions.reduce((sum, q) => sum + q[field], 0) / scoredQuestions.length;
+    const finalScore = Number.isFinite(Number(interview.finalScore))
+        ? Number(interview.finalScore)
+        : avg("score");
+
+    const best = [...scoredQuestions].sort((a, b) => b.score - a.score)[0];
+    const weakest = [...scoredQuestions].sort((a, b) => a.score - b.score)[0];
+    const areas = [
+        { label: "confidence", value: avg("confidence") },
+        { label: "communication", value: avg("communication") },
+        { label: "correctness", value: avg("correctness") },
+    ].sort((a, b) => a.value - b.value);
+
+    const focusArea = areas[0]?.label || "communication";
+    const strengthArea = areas[areas.length - 1]?.label || "clarity";
+
+    return [
+        "Live AI is temporarily unavailable, so I used your saved interview data for a quick coaching snapshot.",
+        "",
+        `Overall score: ${finalScore.toFixed(1)}/10`,
+        "",
+        "Strengths:",
+        `- Your strongest area is ${strengthArea}.`,
+        best?.feedback ? `- Best response signal: ${best.feedback}` : `- Best response was around question ${best?.index}.`,
+        "",
+        "Work on next:",
+        `- Focus first on ${focusArea}.`,
+        weakest?.feedback ? `- Lowest response signal: ${weakest.feedback}` : `- Revisit question ${weakest?.index} and add more structure.`,
+        "",
+        "Quick practice plan:",
+        "- Answer in this order: situation, action, result, learning.",
+        "- Keep each answer specific with one concrete example.",
+        "- Do one more pass on the weakest answer and make it 20 percent shorter.",
+    ].join("\n");
+};
+
 export const chatWithAI = async (req, res) => {
     try {
         const { interviewId, message, conversationHistory } = req.body;
@@ -174,23 +337,27 @@ export const chatWithAI = async (req, res) => {
                 usedProvider = "openrouter";
             } catch (orErr) {
                 console.error("[AI] Both providers failed.");
-                
-                const gMsg = gErr.message.toLowerCase();
-                const orMsg = orErr.message.toLowerCase();
+                const localReply = await buildLocalCoachingReply(interviewId, userId);
+                if (localReply) {
+                    reply = localReply;
+                    usedProvider = "local-fallback";
+                } else {
+                    const gMsg = gErr.message.toLowerCase();
+                    const orMsg = orErr.message.toLowerCase();
 
-                const isKey = gMsg.includes("api key") || orMsg.includes("api key") || gMsg.includes("401") || orMsg.includes("401");
+                    const isKey = (gMsg.includes("api key") || gMsg.includes("401")) &&
+                        (orMsg.includes("api key") || orMsg.includes("401"));
                 
-                if (isKey) {
-                    return res.status(500).json({
-                        reply: "❌ AI API key is invalid or not set. Please check your Render environment variables.",
+                    if (isKey) {
+                        return res.status(500).json({
+                            reply: "AI API keys are invalid or not set. Please check your Render environment variables.",
+                        });
+                    }
+
+                    return res.status(503).json({
+                        reply: "AI providers are temporarily unavailable. Please try again in a moment.",
                     });
                 }
-
-                // If we get here, it's either quota or a safety filter/internal error
-                // We'll show a more helpful message including the actual error if possible
-                return res.status(429).json({
-                    reply: `⚠️ AI service is currently busy or quota exceeded. Please try again in a moment. (Debug: ${gErr.message.slice(0, 50)})`,
-                });
             }
         }
 
